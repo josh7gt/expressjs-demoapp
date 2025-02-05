@@ -123,6 +123,25 @@ app.patch('/api/users/:id', (req, res) => {
     return res.sendStatus(200);
 });
 
+// a delete request that deletes a user based on the id
+app.delete("/api/users/:id", (req, res) => {
+    const { id } = req.params;
+
+    const parsedID = parseInt(id);
+    if(isNaN(parsedID)) {
+        res.status(400).send({msg: "Invalid ID"});
+    }
+    const findUserIndex = mockUsers.findIndex(user => user.id === parsedID);
+    if(findUserIndex === -1){
+        res.status(404).send({msg: "User not found"});
+    }
+
+    // a splice method used to delete the user based on the index, "1" param is necessary so it deletes just the first id
+    mockUsers.splice(findUserIndex, 1);
+    return res.sendStatus(200);
+
+})
+
 // assign the port to the app
 app.listen(PORT, () => {
     console.log(`Listening on port ${PORT}`)
