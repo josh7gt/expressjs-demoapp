@@ -6,4 +6,4 @@ This is a demo web project built through the use of Express JS. In this project,
 * [ ] Validation
 * [ ] Routers
 
-This demo web project follows [this course](https://www.youtube.com/watch?v=nH9E25nkk3I) by Anson. I highly reccomend this course if you are interested in web development with Express JS.
+This demo web project follows [this course](https://www.youtube.com/watch?v=nH9E25nkk3I) by Anson. I highly recommend this course if you are interested in web development with Express JS.
