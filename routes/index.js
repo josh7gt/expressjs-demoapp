@@ -4,10 +4,43 @@ import express from "express";
 const app = express();
 app.use(express.json());
 
+
+// a middleware function that logs the request method and url
+const loggingMiddleware = (req, res, next) => {
+    console.log(`${req.method} ${req.url}`);
+    next();
+}
+
+// a middleware function that resolves findUserIndex based on the id
+const resolveIndexByUserID = (req, res, next) => {
+    const {
+        params: { id },
+    } = req;
+
+    // return an error if the id is not a number
+    const parsedID = parseInt(id);
+    if (isNaN(parsedID)) {
+        res.status(400).send({msg: "Invalid ID"});
+    }
+
+    // find the user index based on the parsed id, return an error if a user could not be found
+    const findUserIndex = mockUsers.findIndex(user => user.id === parsedID);
+    if (findUserIndex === -1) {
+        res.status(404).send({msg: "User not found"});
+    }
+
+    req.findUserIndex = findUserIndex;
+    next();
+}
+
+app.use(loggingMiddleware);
+
 // assign a port number for the localhost
 const PORT = process.env.PORT || 2999;
 
-// mock users data that will be played around with data types such as id, username, and display name
+/* mock users array that will be manipulated through different request types
+ * contains fake data types such as id, username, and display name
+ */
 const mockUsers = [
     { id: 1, username: "John", display: "John Doe" },
     { id: 2, username: "Jane", display: "Jane Doe"},
@@ -19,7 +52,7 @@ app.get("/", (req, res) => {
     res.status(201).send({msg: "Hello"});
 });
 
-// get requests in order to grab all user data with filters
+// get requests in order to grab all user data through filters
 app.get("/api/users", (req, res) => {
     console.log(req.query);
 
@@ -49,24 +82,14 @@ app.post("/api/users", (req, res) => {
 })
 
 // a get request to grab user data based on the id
-app.get("/api/users/:id", (req, res) => {
-    console.log(req.params.id);
-
-    // parse the id parameter to an integer
-    const parsedID = parseInt(req.params.id);
-
-    // if the parameter is not a number, return a 400 status with an "Invalid ID" message
-    if (isNaN(parsedID)) {
-        res.status(400).send({msg: "Invalid ID"});
+app.get("/api/users/:id", resolveIndexByUserID, (req, res) => {
+    const { findUserIndex } = req;
+    const user = mockUsers[findUserIndex];
+    if (user) {
+        res.send(user);
     } else {
-        // else find the user with the parsed id
-        const user = mockUsers.find(user => user.id === parsedID);
-        if (user) {
-            res.send(user);
-        } else {
-            // error 404 if the parsed id can't find an account
-            res.status(404).send({msg: "User not found"});
-        }
+        // error 404 if the parsed id can't find an account
+        res.status(404).send({msg: "User not found"});
     }
 })
 
@@ -80,43 +103,17 @@ app.get('/api/products', (req, res) => {
 });
 
 // a put request to update user data based on the id
-app.put('/api/users/:id', (req, res) => {
-    const {
-        body,
-        params: { id },
-    } = req;
-
-    const parsedID = parseInt(id);
-    if(isNaN(parsedID)) {
-        res.status(400).send({msg: "Invalid ID"});
-    }
-
-    const findUserIndex = mockUsers.findIndex(user => user.id === parsedID);
-    if (findUserIndex === -1) {
-        res.status(404).send({msg: "User not found"});
-    }
+app.put('/api/users/:id', resolveIndexByUserID, (req, res) => {
+    const { body, findUserIndex } = req;
 
     // update the user using the parsed id and the body
-    mockUsers[findUserIndex] = { id: parsedID, ...body };
+    mockUsers[findUserIndex] = { id: mockUsers[findUserIndex].id, ...body };
     return res.sendStatus(200);
 });
 
 // a patch request to update specific data based on the id
-app.patch('/api/users/:id', (req, res) => {
-    const {
-        body,
-        params: { id },
-    } = req;
-
-    const parsedID = parseInt(id);
-    if (isNaN(parsedID)) {
-        res.status(400).send({msg: "Invalid ID"});
-    }
-
-    const findUserIndex = mockUsers.findIndex(user => user.id === parsedID);
-    if (findUserIndex === -1) {
-        res.status(404).send({msg: "User not found"});
-    }
+app.patch('/api/users/:id', resolveIndexByUserID, (req, res) => {
+    const { body, findUserIndex } = req;
 
     // once again update the user using the parsed id and the body
     mockUsers[findUserIndex] = { ...mockUsers[findUserIndex], ...body };
@@ -124,19 +121,10 @@ app.patch('/api/users/:id', (req, res) => {
 });
 
 // a delete request that deletes a user based on the id
-app.delete("/api/users/:id", (req, res) => {
-    const { id } = req.params;
+app.delete("/api/users/:id", resolveIndexByUserID, (req, res) => {
+    const { findUserIndex } = req.params;
 
-    const parsedID = parseInt(id);
-    if(isNaN(parsedID)) {
-        res.status(400).send({msg: "Invalid ID"});
-    }
-    const findUserIndex = mockUsers.findIndex(user => user.id === parsedID);
-    if(findUserIndex === -1){
-        res.status(404).send({msg: "User not found"});
-    }
-
-    // a splice method used to delete the user based on the index, "1" param is necessary so it deletes just the first id
+    // a splice method used to delete the user based on the index, "1" param is necessary to specify one account
     mockUsers.splice(findUserIndex, 1);
     return res.sendStatus(200);
 
